@@ -1,137 +1,213 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 
-// Remember to rename these classes and interfaces!
 
-interface MyPluginSettings {
-	mySetting: string;
+
+import { Plugin, WorkspaceLeaf } from 'obsidian';
+import CommandoVimModal from 'vim-modal';
+import CommandSettingTab from 'settings';
+
+
+interface CommandoSettings {
+	maxVimBuffer: number,
+    allowVimMode: boolean
+
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+const DEFAULT_SETTINGS: Partial<CommandoSettings> = {
+	maxVimBuffer: 3,
+    allowVimMode: true
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
 
+
+
+     /* -- --- --- --- --- --- *\    Command Plugin
+    ;;
+    ;;
+     \* -- --- --- --- --- --- --- --- -- */
+
+export default class CommandoPlugin extends Plugin {
+
+	settings: CommandoSettings;
+    
+    commandoVimModal :CommandoVimModal;
+    keyBuffer_div :HTMLElement;
+
+
+
+
+         /* -- --- --- --- --- --- *\    update Commando Vim Modal
+        ()
+        ()
+         \* -- --- --- --- --- --- --- --- -- */
+    
+    updateCommandoVimModal (allowVimMode :boolean) {
+
+        this.commandoVimModal = new CommandoVimModal(this.app, allowVimMode);
+    }
+
+        // --- --- --- --- --- ,,, --- ''' qFp ''' --- ,,, --- --- --- --- --- //
+
+
+
+
+         /* -- --- --- --- --- --- *\    on load
+        ()
+        ()
+         \* -- --- --- --- --- --- --- --- -- */
+    
 	async onload() {
+
+        const self = this;
+        // required for proxy set() trap closure to reliably access 'keyBuffer_div'
+
+        
+        
+    //  SETTINGS TAB
 		await this.loadSettings();
+        this.addSettingTab(new CommandSettingTab(this.app, this));
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
+    //  ADD COMMANDO MODAL
+        this.updateCommandoVimModal(this.settings.allowVimMode);
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
+        
+    //  ADD COMMAND
+        this.addCommand({
+            id: "commando-repeat-command",
+            name: "Commando Command Palette",
+            callback: () => {
+                this.commandoVimModal.open()
+            }
+        });
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
-		});
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+    //  STATUS BAR KEYBUFFER TEXT
+        const keyBuffer_status = this.addStatusBarItem();
+        this.keyBuffer_div = keyBuffer_status.createEl('div', {text: "999"});
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+    //  PROXY RE-SETTER
+        const unstable_proxy_setter = function (target :any, prop :string, value :any, reciever :any) {
+        // Watches for the changes in the 'keyBuffer' in order to take action.
+        // This method was chosen over polling to improve performance.
+
+            if ('isProxy' in target && prop == 'inputState') {
+            // ^^^ will stop work on unload since there is no way to reverse a proxy.
+            // All proxies are erased when an editor closes or opens a new file (even moving forward or back),
+            // so after the plugin is disabled proxies will persist for unobtrusively short period.
+            // Closing all editors or reopening vault will clear them immediately otherwise.
+
+
+                if ( !('isProxy' in value) ) {
+                // set may be called multiple times for inputState, but proxy is set only once
+                    value = new Proxy(value, {
+                        set(target, prop, value, reciever) {
+
+                            if (prop == 'keyBuffer') {
+                                
+                                const match = value.match(/^\d+/);                                
+                                if (match && match[0].length >2) {
+                                // Truncating the keyBuffer to only max 2 #'s.
+                                // During testing, it was realized that cm vim implementation has
+                                // not limit and obsidian can freeze due to extremely large requests.
+                                // Providing a setting which can override this functionality.
+
+                                    const stripLen = match[0].length - (match[0].length -2);
+                                    value = value.replace(value.substr(0, stripLen), "");
+                                }
+
+                                self.keyBuffer_div.setText(value);
+                            }
+                            target[prop] = value;
+                            return true;
+                        }
+                    });
+
+                    value.isProxy = true;
+                }
+            }
+            target[prop] = value;
+            return true;
+        }
+    
+
+    //  ROOT PROXY 
+        const set_stable_proxy = function (leaf :WorkspaceLeaf) {
+        // beecuase the 'inputState' proxy will be removed whenever the keyBuffer is consumed or wiped
+        // the 'cm.cm.state.vim' proxy set here watches for those changes.
+
+            // @ts-ignore
+            if ( leaf.view.editor == null ) {
+                return;
+            }
+
+            // @ts-ignore
+            if ('isProxy' in leaf.view.editor.cm.cm.state.vim) return
+            
+            // @ts-ignore
+            const target = leaf.view.editor.cm.cm.state.vim;
+            const proxy = new Proxy(
+                target, {
+                set: unstable_proxy_setter
+            })
+
+            proxy.isProxy = true;
+
+            // @ts-ignore
+            leaf.view.editor.cm.cm.state.vim = proxy;
+        }
+
+
+    //  REGISTER EVENT AND PROXIES
+        this.app.workspace.iterateAllLeaves(set_stable_proxy);
+        this.registerEvent(this.app.workspace.on('active-leaf-change', set_stable_proxy));
+
 	}
 
+        // --- --- --- --- --- ,,, --- ''' qFp ''' --- ,,, --- --- --- --- --- //
+
+
+
+
+         /* -- --- --- --- --- --- *\    on unload
+        ()
+        ()
+         \* -- --- --- --- --- --- --- --- -- */
+    
 	onunload() {
+        this.app.workspace.iterateAllLeaves(leaf => {
+            // @ts-ignore
+            if (leaf.view.editor == null) return;
 
+            // @ts-ignore
+            if (!Object.hasOwn(leaf.view.editor.cm.cm.state.vim, 'isProxy')) return;
+
+            // @ts-ignore
+            delete leaf.view.editor.cm.cm.state.vim.isProxy;
+        });
 	}
+
+        // --- --- --- --- --- ,,, --- ''' qfp ''' --- ,,, --- --- --- --- --- //
+
+
+
+
+         /* -- --- --- --- --- --- *\    load / save Settings
+        ()
+        ()
+         \* -- --- --- --- --- --- --- --- -- */
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
+
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
+
+        // --- --- --- --- --- ,,, --- ''' qFp ''' --- ,,, --- --- --- --- --- //
+
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const {containerEl} = this;
-
-		containerEl.empty();
-
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
-	}
-}
+    // --- --- --- --- --- ,,, --- ''' qFp ''' --- ,,, --- --- --- --- --- //
