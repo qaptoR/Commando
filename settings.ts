@@ -1,4 +1,5 @@
 
+
 import { PluginSettingTab, App, Setting } from "obsidian";
 import CommandoPlugin from "main";
 
@@ -10,12 +11,15 @@ import CommandoPlugin from "main";
      \* -- --- --- --- --- --- --- --- -- */
 
 export default class CommandSettingTab extends PluginSettingTab {
+
 	plugin: CommandoPlugin;
+
 
 	constructor(app: App, plugin: CommandoPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
+
 
 	display(): void {
 		const {containerEl} = this;
@@ -38,6 +42,18 @@ export default class CommandSettingTab extends PluginSettingTab {
                 await this.plugin.saveSettings();
         }));
 
+        const commandDelay = new Setting(containerEl);
+        commandDelay
+        .setName(`Command Delay: ${this.plugin.settings.commandDelay}`)
+        .setDesc("The time delay in ms between each command iteration")
+        .addText(text => text
+            .onChange(async (value) => {
+                const parsed = parseInt(value);
+                this.plugin.settings.commandDelay = Number.isNaN(parsed) ? 250 : parsed;
+                commandDelay.setName(`Command Delay: ${this.plugin.settings.commandDelay}`);
+                await this.plugin.saveSettings();
+        }));
+
         const allowVimMode = new Setting(containerEl);
         allowVimMode
         .setName("Allow Vim Mode")
@@ -46,7 +62,6 @@ export default class CommandSettingTab extends PluginSettingTab {
             .setValue(this.plugin.settings.allowVimMode)
             .onChange(async (value) => {
                 this.plugin.settings.allowVimMode = value;
-                this.plugin.updateCommandoVimModal(value);
                 await this.plugin.saveSettings();
         }));
 	}

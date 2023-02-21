@@ -1,19 +1,21 @@
 
 
-
 import { Plugin, WorkspaceLeaf } from 'obsidian';
 import CommandoVimModal from 'vim-modal';
 import CommandSettingTab from 'settings';
+import { buffer } from 'stream/consumers';
 
 
 interface CommandoSettings {
-	maxVimBuffer: number,
-    allowVimMode: boolean
+	maxVimBuffer :number,
+    commandDelay :number
+    allowVimMode :boolean
 
 }
 
 const DEFAULT_SETTINGS: Partial<CommandoSettings> = {
 	maxVimBuffer: 3,
+    commandDelay: 250,
     allowVimMode: true
 }
 
@@ -30,19 +32,54 @@ export default class CommandoPlugin extends Plugin {
 	settings: CommandoSettings;
     
     commandoVimModal :CommandoVimModal;
-    keyBuffer_div :HTMLElement;
+    commandoStatus_div :HTMLElement;
+    running :boolean = false;
+    breakLoop :boolean = false;
 
 
 
-
-         /* -- --- --- --- --- --- *\    update Commando Vim Modal
+         /* -- --- --- --- --- --- *\    check Vim Mode
         ()
         ()
          \* -- --- --- --- --- --- --- --- -- */
     
-    updateCommandoVimModal (allowVimMode :boolean) {
+    checkVimMode () {
+        // @ts-ignore
+        return this.app.vault.config.vimMode;
+    }
+    
+        // --- --- --- --- --- ,,, --- ''' qFp ''' --- ,,, --- --- --- --- --- //
 
-        this.commandoVimModal = new CommandoVimModal(this.app, allowVimMode);
+
+
+
+         /* -- --- --- --- --- --- *\    get Key Buffer Value
+        ()
+        ()
+         \* -- --- --- --- --- --- --- --- -- */
+    
+    getKeyBufferValue () {
+
+        let bufferVal :any;
+
+        // @ts-ignore
+        if (this.app.workspace.activeEditor.editor == null || !this.app.vault.config.vimMode) {
+            bufferVal = "";
+
+        // @ts-ignore
+        } else {
+            
+            // @ts-ignore
+            bufferVal = this.app.workspace.activeEditor.editor.cm.cm.state.vim.inputState.keyBuffer;
+    
+            if (!bufferVal || bufferVal instanceof Array) {
+            // keyBuffer may at times be undefined or [] 
+                bufferVal = "";
+            } 
+
+        }
+
+        return bufferVal;
     }
 
         // --- --- --- --- --- ,,, --- ''' qFp ''' --- ,,, --- --- --- --- --- //
@@ -58,17 +95,18 @@ export default class CommandoPlugin extends Plugin {
 	async onload() {
 
         const self = this;
-        // required for proxy set() trap closure to reliably access 'keyBuffer_div'
-
+        // required for proxy set() trap closure to reliably access 'commandoStatus_div'
         
         
     //  SETTINGS TAB
 		await this.loadSettings();
         this.addSettingTab(new CommandSettingTab(this.app, this));
 
-
-    //  ADD COMMANDO MODAL
-        this.updateCommandoVimModal(this.settings.allowVimMode);
+        this.registerDomEvent(document, 'keydown', (event :KeyboardEvent) => {
+            if (event.ctrlKey && event.key == 'c' && this.running && !this.breakLoop) {
+                this.breakLoop = true;
+            }
+        });
 
         
     //  ADD COMMAND
@@ -76,14 +114,17 @@ export default class CommandoPlugin extends Plugin {
             id: "commando-repeat-command",
             name: "Commando Command Palette",
             callback: () => {
-                this.commandoVimModal.open()
+                if (this.running) return;
+
+                const modal = new CommandoVimModal(this.app, this);
+                modal.open()
             }
         });
 
 
     //  STATUS BAR KEYBUFFER TEXT
         const keyBuffer_status = this.addStatusBarItem();
-        this.keyBuffer_div = keyBuffer_status.createEl('div', {text: "999"});
+        this.commandoStatus_div = keyBuffer_status.createEl('div', {text: ""});
 
 
     //  PROXY RE-SETTER
@@ -116,7 +157,7 @@ export default class CommandoPlugin extends Plugin {
                                     value = value.replace(value.substr(0, stripLen), "");
                                 }
 
-                                self.keyBuffer_div.setText(value);
+                                self.commandoStatus_div.setText(value);
                             }
                             target[prop] = value;
                             return true;
@@ -135,6 +176,9 @@ export default class CommandoPlugin extends Plugin {
         const set_stable_proxy = function (leaf :WorkspaceLeaf) {
         // beecuase the 'inputState' proxy will be removed whenever the keyBuffer is consumed or wiped
         // the 'cm.cm.state.vim' proxy set here watches for those changes.
+
+            // @ts-ignore
+            if (!self.app.vault.config.vimMode) return;
 
             // @ts-ignore
             if ( leaf.view.editor == null ) {
@@ -175,7 +219,14 @@ export default class CommandoPlugin extends Plugin {
          \* -- --- --- --- --- --- --- --- -- */
     
 	onunload() {
+
+        const self = this;
+
         this.app.workspace.iterateAllLeaves(leaf => {
+
+            // @ts-ignore
+            if (!self.app.vault.config.vimMode) return;
+
             // @ts-ignore
             if (leaf.view.editor == null) return;
 

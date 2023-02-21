@@ -1,35 +1,83 @@
 
 
-import { FuzzySuggestModal, App, Command, Notice, Instruction } from "obsidian";
+import CommandoPlugin from "main";
+import { Setting, FuzzySuggestModal, App, Command, Notice, Instruction, Modal } from "obsidian";
+import { buffer } from "stream/consumers";
 
 
+
+     /* -- --- --- --- --- --- *\    Commando Vim Modal
+    ;;
+    ;;
+     \* -- --- --- --- --- --- --- --- -- */
 
 export default class CommandoVimModal extends FuzzySuggestModal<Command> {
 
-    constructor (app :App, allow :boolean) {
-        super(app);
+    plugin :CommandoPlugin;
+    
 
-        this.updateInstructions(allow);
+
+         /* -- --- --- --- --- --- *\    constructor
+        ()
+        ()
+         \* -- --- --- --- --- --- --- --- -- */
+    
+    constructor (app :App, plugin :CommandoPlugin) {
+        super(app);
+        this.plugin = plugin;
+        this.updateInstructions(plugin.settings.allowVimMode);
+
+        this.inputEl.addEventListener('keydown', (event :KeyboardEvent) => {
+            if ((event.altKey || event.ctrlKey) && event.code == 'Enter') {
+
+                // @ts-ignore
+                const selection = this.chooser.selectedItem;
+                // @ts-ignore
+                this.onChooseItem(this.chooser.values[selection].item, event)
+            }
+        });
     }
 
+        // --- --- --- --- --- ,,, --- ''' qFp ''' --- ,,, --- --- --- --- --- //
 
+
+
+
+         /* -- --- --- --- --- --- *\    update Instructions
+        ()
+        ()
+         \* -- --- --- --- --- --- --- --- -- */
+    
     updateInstructions (allowVimMode :boolean) {
-        
+       
+        // @ts-ignore
+        const vimModeEnabled :boolean = this.app.vault.config.vimMode;
         const instructions :Instruction[] = [];
-        const bufferText :string = "Use Vim numeric prefix buffer for loop iterations";
-        const promptText :string = "Prompt for loop iterations";
+        const bufferText :string = "Use Vim numeric prefix";
+        const settingsText :string = "Prompt for iteration settings";
+        const promptText :string = "Prompt to continue each iteration";
 
-        if (allowVimMode) {
+        if (vimModeEnabled && allowVimMode) {
             instructions.push({command: "<Enter>", purpose: bufferText});
-            instructions.push({command:"<Alt + Enter>", purpose: promptText});
+            instructions.push({command: "<Ctrl + Enter>", purpose: promptText});
+            instructions.push({command: "<Alt + Enter>", purpose: settingsText});
         } else {
-            instructions.push({command: "<Enter>", purpose: promptText});
+            instructions.push({command: "<Enter>", purpose: settingsText});
         }
 
         this.setInstructions(instructions);
     }
 
+        // --- --- --- --- --- ,,, --- ''' qFp ''' --- ,,, --- --- --- --- --- //
 
+
+
+    
+         /* -- --- --- --- --- --- *\    get Items
+        ()
+        ()
+         \* -- --- --- --- --- --- --- --- -- */
+    
     getItems(): Command[] {
         
         const commands :Command[] = [];
@@ -43,44 +91,249 @@ export default class CommandoVimModal extends FuzzySuggestModal<Command> {
 
 
     getItemText(item: Command): string {
+
         return item.name;
     }
 
+        // --- --- --- --- --- ,,, --- ''' qFp ''' --- ,,, --- --- --- --- --- //
 
-    onChooseItem(item: Command, evt: MouseEvent | KeyboardEvent): void {
 
-        // @ts-ignore
-        let buffer_val = this.app.workspace.activeEditor?.editor?.cm?.cm?.state?.vim?.inputState?.keyBuffer;
-        // @ts-ignore
-        this.app.workspace.activeEditor.editor.cm.cm.state.vim.inputState.keyBuffer = "";
 
-        const match_result = buffer_val.match(/^\d+/);
-        const repeat_amount = match_result ? parseInt(match_result[0]) : 1;
 
-        new Notice(repeat_amount.toString());
-        const commando = async () => {
-            for (let i= 0; i< repeat_amount; ++i) {
+         /* -- --- --- --- --- --- *\    on Choose Item
+        ()
+        ()
+         \* -- --- --- --- --- --- --- --- -- */
+    
+    onChooseItem(item: Command, event: MouseEvent | KeyboardEvent): void {
+
+        const commando = async (loopCount :number, interval :number, withPrompt :boolean) => {
+
+            this.plugin.running = true;
+
+            for (let i= 1; i<= loopCount; ++i) {
+                if (this.plugin.breakLoop) {
+                    this.plugin.breakLoop = false;
+                    break;
+                }
+                
+                this.plugin.commandoStatus_div.setText('Running Command');
+
                 // @ts-ignore
                 this.app.commands.executeCommandById(item.id);
-                await new Promise(resolve => setTimeout(resolve, 250));
-                // await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, interval));
+
+                if (withPrompt && i < loopCount) {
+
+                    this.plugin.commandoStatus_div.setText('Waiting to Continue');
+                    await new Promise<void>(resolve => {
+                        const modal = new CommandoPromptModal( this.app, ()=> {resolve();});
+                        modal.open();
+                    });
+                }
             }
+
+            this.plugin.running = false;
+
+            // @ts-ignore
+            this.plugin.commandoStatus_div.setText(this.plugin.getKeyBufferValue());
         }
 
-        commando();
+
+        // @ts-ignore
+        const vimModeEnabled :boolean = this.app.vault.config.vimMode;
+
+        if (vimModeEnabled && this.plugin.settings.allowVimMode && !event.altKey) {
+
+            // @ts-ignore
+            let bufferVal :string = this.plugin.getKeyBufferValue();
+
+            // @ts-ignore
+            this.app.workspace.activeEditor.editor.cm.cm.state.vim.inputState.keyBuffer = "";
+            const match_result = bufferVal?.match(/^\d+/);
+            const repeat_amount = match_result ? parseInt(match_result[0]) : 1;
+
+            new Notice(repeat_amount.toString());
+
+            const withPrompt = event.ctrlKey ? true : false;
+            commando(repeat_amount, this.plugin.settings.commandDelay, withPrompt);
+        } else {
+            const modal = new CommandoSettingsModal(this.app, this.plugin, commando);
+            modal.open();
+        }
+
         this.close();
     }
+
+        // --- --- --- --- --- ,,, --- ''' qFp ''' --- ,,, --- --- --- --- --- //
+
 }
 
+    // --- --- --- --- --- ,,, --- ''' qCp ''' --- ,,, --- --- --- --- --- //
 
 
 
-// Allow Vim Mode: TRUE
-//   if VIM enabled: 
-//     <enter>: run command with vim buffer
-//     <alt+enter>: prompt for loop count
-//   if VIM disabled:
-//     <enter>: prompt for loop count
-//
-// Allow Vim Mode: FALSE
-//  <enter>: prompt for loop count
+    //- --- --- --- --- --- --- --- --- --- --- --- ### --- --- --- --- --- --- --- --- --- --- --- --- -//
+    //- --- --- --- --- --- --- --- --- --- --- ---#### --- --- --- --- --- --- --- --- --- --- --- --- -//
+    //- --- --- --- --- --- --- --- --- --- --- --- -## --- --- --- --- --- --- --- --- --- --- --- --- -//
+    //- --- --- --- --- --- --- --- --- --- --- --- -## --- --- --- --- --- --- --- --- --- --- --- --- -//
+    //- --- --- --- --- --- --- --- --- --- --- --- -## --- --- --- --- --- --- --- --- --- --- --- --- -//
+    //- --- --- --- --- --- --- --- --- --- --- ---######-- --- --- --- --- --- --- --- --- --- --- --- -//
+
+
+
+     /* -- --- --- --- --- --- *\    Commando Prompt Modal
+    ;;
+    ;;
+     \* -- --- --- --- --- --- --- --- -- */
+
+class CommandoSettingsModal extends Modal {
+
+    plugin :CommandoPlugin;
+    repeat :number;
+    delay :number;
+    commando : (repeat :number, interval :number, prompt :boolean) => void;
+
+
+
+         /* -- --- --- --- --- --- *\    constructor
+        ()
+        ()
+         \* -- --- --- --- --- --- --- --- -- */
+    
+    constructor(app :App, plugin :CommandoPlugin, commando :(repeat :number, interval :number, prompt :boolean) => void) {
+        super(app);
+        this.plugin = plugin;
+        this.commando = commando;
+
+        this.repeat = 1;
+        this.delay = plugin.settings.commandDelay;
+    }
+
+        // --- --- --- --- --- ,,, --- ''' qFp ''' --- ,,, --- --- --- --- --- //
+
+
+
+
+         /* -- --- --- --- --- --- *\    on Open
+        ()
+        ()
+         \* -- --- --- --- --- --- --- --- -- */
+    
+    onOpen () :void {
+
+        const { contentEl } = this;
+
+        new Setting(contentEl)
+        .setName("Command Repeat Count")
+        .setDesc("Repeat the chosen command this number of times")
+        .addText(text => {
+            text.onChange(value => {
+                const match = value.match(/^\d+/);
+                this.repeat = match ? parseInt(match[0]) : 1;
+            });
+        });
+
+        new Setting(contentEl)
+        .setName("Command Repeat Delay")
+        .setDesc("Repeat the chosen command after this delay\n(Leave blank for settings value)")
+        .addText(text => {
+            text.onChange(value => {
+                const parsed = parseInt(value);
+                this.delay = Number.isNaN(parsed) ? this.plugin.settings.commandDelay : parsed;
+            })
+        })
+        
+        contentEl.createEl('p', {text: "<Enter> Run all iterations"});
+        contentEl.createEl('p', {text: "<Ctrl + Enter> Run with prompt each iteration"});
+
+
+        contentEl.addEventListener('keypress', (event :KeyboardEvent) => {
+            if (event.code == 'Enter') {
+                this.commando(this.repeat, this.delay, event.ctrlKey ? true : false);
+                this.close()
+            }
+        });
+    }
+
+        // --- --- --- --- --- ,,, --- ''' qFp ''' --- ,,, --- --- --- --- --- //
+
+}
+
+    // --- --- --- --- --- ,,, --- ''' qCp ''' --- ,,, --- --- --- --- --- //
+
+
+
+    //- --- --- --- --- --- --- --- --- --- --- ---######-- --- --- --- --- --- --- --- --- --- --- --- -//
+    //- --- --- --- --- --- --- --- --- --- --- --##--- ##- --- --- --- --- --- --- --- --- --- --- --- -//
+    //- --- --- --- --- --- --- --- --- --- --- --- --- ##- --- --- --- --- --- --- --- --- --- --- --- -//
+    //- --- --- --- --- --- --- --- --- --- --- --- --##--- --- --- --- --- --- --- --- --- --- --- --- -//
+    //- --- --- --- --- --- --- --- --- --- --- ---###- --- --- --- --- --- --- --- --- --- --- --- --- -//
+    //- --- --- --- --- --- --- --- --- --- --- -########## --- --- --- --- --- --- --- --- --- --- --- -//
+
+
+
+     /* -- --- --- --- --- --- *\    Command Prompt Modal
+    ;;
+    ;;
+     \* -- --- --- --- --- --- --- --- -- */
+
+class CommandoPromptModal extends Modal {
+
+    promiseCallback :() => void;
+
+
+
+         /* -- --- --- --- --- --- *\    constructor
+        ()
+        ()
+         \* -- --- --- --- --- --- --- --- -- */
+    
+    constructor (app :App, promiseCallback :() => void) {
+        super(app);
+        this.promiseCallback = promiseCallback;
+    }
+
+
+    onOpen(): void {
+
+        this.contentEl.createEl('h1', {text: "Continue?"});
+        this.contentEl.createEl('p', {text: "<Ctrl-C> to set break instruction"});
+        this.contentEl.createEl('p', {text: "<Enter> or <Tab> to continue"});
+        this.contentEl.createEl('p', {text: "If the modal closes it will continue automatically"})
+
+        this.contentEl.addEventListener('keydown', (event :KeyboardEvent) => {
+            if (event.code == 'Tab' || event.code == "Enter") {
+                this.close();
+            }
+        });
+
+
+        this.contentEl.setAttribute('tabindex', '0');
+        this.contentEl.focus();
+    }
+
+        // --- --- --- --- --- ,,, --- ''' qFp ''' --- ,,, --- --- --- --- --- //
+
+    
+
+
+         /* -- --- --- --- --- --- *\    on Close
+        ()
+        ()
+         \* -- --- --- --- --- --- --- --- -- */
+    
+    onClose(): void {
+        
+        this.promiseCallback();
+        this.contentEl.empty();
+    }
+
+        // --- --- --- --- --- ,,, --- ''' qFp ''' --- ,,, --- --- --- --- --- //
+
+}
+
+    // --- --- --- --- --- ,,, --- ''' qCp ''' --- ,,, --- --- --- --- --- //
+
+
+    
