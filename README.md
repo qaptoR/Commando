@@ -1,96 +1,105 @@
-# Obsidian Sample Plugin
+# Commando Plugin
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+This plugin is designed to enrich the command use experience by enabling repeated command iterations.
 
-This project uses Typescript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in Typescript Definition format, which contains TSDoc comments describing what it does.
+eg. When using 'Advanced Tables' community plguin and you need to move a row up 20 times, rather than click the button in the sidebar GUI or
+repeatedly call the command exhaustively, use commando to call the command once and have it repeat 20 times per your instruction!
 
-**Note:** The Obsidian API is still in early alpha and is subject to change at any time!
+Commando is so named to be reminiscent of the community plugin 'Commander' which enables creating command macros. (see also 'QuickAdd').
+Macros were originally also going to be enabled by Commando, but instead I've chosen to accept help and divide and conquer!
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Changes the default font color to red using `styles.css`.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+So think of Commander as the general, and Commando as the frontline soldier in your army of plugins that help you manage you PKM.
 
-## First time developing plugins?
+### Disclaimer
 
-Quick starting guide for new plugin devs:
+By using Commando you do so at your own risk knowing full well that not every command Obsidian or other plugins provide should
+be run in this manner.
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+Every command is a unique snowflake, and every care should be taken to think through what changes will be made if it is run
+several to many hundreds of times in rapid succession.
 
-## Releasing new releases
+It is highly recommended to have your vault under version control prior to using Commando in any way which might change or
+remove files. With great power comes great responsibility.
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+As an added precaution, it is a good idea to pre-test running Commando with any command in a test vault before use in
+a production or day to day vault.
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+## Features
 
-## Adding your plugin to the community plugin list
+- Dedicated 'Commando Palette'. One command to rule them all!
+- optional continue iteration prompts
+- instant breakout from iteration with \<Ctrl + c\>
+- SEE the vim keyBuffer (or optionally only numeric prefix buffer) in the status bar!
 
-- Check https://github.com/obsidianmd/obsidian-releases/blob/master/plugin-review.md
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+# Commando Palette
 
-## How to use
+Nearly identical in operation to the normal command palette, with a secret:
 
-- Clone this repo.
-- `npm i` or `yarn` to install dependencies
-- `npm run dev` to start compilation in watch mode.
+When Obsidian is in Vim Mode, the Commando Palette can use the vim numeric prefix buffer as the command iteration count.
 
-## Manually installing the plugin
+Once a command is under selection, type any of the following:
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+- \<Enter\> Run the command using Prefix Buffer and delay from plugin settings
+- \<Ctrl + Enter\> Run the command as above, pause after each iteration with prompt modal to continue
+- \<Alt + Enter\> Bring up an instance settings modal to choose iteration count and optional delay for this invocation
 
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
+IF 'Allow Vim Mode' plugin setting or Obsidian Vim Mode are turned off
 
-## Funding URL
+- \<Enter\> Bring up an instance settings modal to choose iteration count or delay for this invocation
 
-You can include funding URLs where people who use your plugin can financially support it.
+### Instance Settings Modal
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+Choose the iteration count, and optionally choose a delay for this instance run of Commando.
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
-```
+From this modal, type any of the following:
 
-If you have multiple URLs, you can also do:
+- \<Enter\> Run the command using the input iteration count and delay, or delay from plugin settings if empty
+- \<Ctrl + Enter\> Run the command as above, pause after each iteration with prompt modal to continue
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
+### Prompt Modal
 
-## API Documentation
+If opted for, this per-iteration prompt offers an opportunity to assess any changes before continuing.
 
-See https://github.com/obsidianmd/obsidian-api
+From this modal, continue by doing any of the following:
+
+- press \<Tab\> or \<Enter\>
+- change focus by navigating away with the mouse
+- press \<Escape\> to close the modal
+
+#### Instant Breakout
+
+If at any point during a large iteration count you decide to stop iterating, type:
+
+- \<Ctrl + c\> to instantly break out of the looping.
+
+Pressing it before closing a Prompt Modal will also cancel the looping when the modal is closed.
+
+# Settings
+
+- Allow Vim Mode
+- Max Vim Buffer
+- Command Delay
+
+### Allow Vim Mode
+
+Whether you use vim keybinds or not, you are in full control of whether Commando even has the option to use
+the numeric prefix buffer as ammunition.
+
+Turning this off simplifies the Commando Palette to just one option for running commands, requiring that the
+instance setting modal be used for every invocation.
+
+### Max Vim Buffer
+
+Have you ever had it where you were trying to do a motion with vim keybinds, but you forgot how many numbers you'd already
+typed?
+
+Well fret no more! In order to save users the frustration of accidentally calling a command 1000s of times, the vim
+keyBuffer is now visible in the status bar.
+
+Commando goes a little further though. Plugin ettings allow you to set a max vim buffer for the numeric prefix, so
+that you might never again run a vim motion, or command more than 9, 99, 999 ... times again!
+
+### Command Delay
+
+Some commands take a second to do their job properly. Rather than rush them with potentially disastrous results,
+set a consistent delay between iterations to give each command (and yourself) time to assess the changes.
