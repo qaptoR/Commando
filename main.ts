@@ -145,16 +145,20 @@ export default class CommandoPlugin extends Plugin {
                         set(target, prop, value, reciever) {
 
                             if (prop == 'keyBuffer') {
-                                
-                                const match = value.match(/^\d+/);                                
-                                if (match && match[0].length >2) {
-                                // Truncating the keyBuffer to only max 2 #'s.
-                                // During testing, it was realized that cm vim implementation has
-                                // not limit and obsidian can freeze due to extremely large requests.
-                                // Providing a setting which can override this functionality.
 
-                                    const stripLen = match[0].length - (match[0].length -2);
-                                    value = value.replace(value.substr(0, stripLen), "");
+                                const maxBuffer :number = self.settings.maxVimBuffer;
+                                
+                                if (maxBuffer != 0) {
+                                    const match = value.match(/^\d+/);                                
+                                    if (match && match[0].length > maxBuffer) {
+                                        // Truncating the keyBuffer to only max 2 #'s.
+                                        // During testing, it was realized that cm vim implementation has
+                                        // not limit and obsidian can freeze due to extremely large requests.
+                                        // Providing a setting which can override this functionality.
+                                        
+                                        const stripLen = match[0].length - (match[0].length - maxBuffer);
+                                        value = value.replace(value.substr(0, stripLen), "");
+                                    }
                                 }
 
                                 self.commandoStatus_div.setText(value);

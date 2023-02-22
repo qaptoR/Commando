@@ -121,7 +121,8 @@ export default class CommandoVimModal extends FuzzySuggestModal<Command> {
 
                 // @ts-ignore
                 this.app.commands.executeCommandById(item.id);
-                await new Promise(resolve => setTimeout(resolve, interval));
+
+                const waitStart = performance.now();
 
                 if (withPrompt && i < loopCount) {
 
@@ -130,6 +131,14 @@ export default class CommandoVimModal extends FuzzySuggestModal<Command> {
                         const modal = new CommandoPromptModal( this.app, ()=> {resolve();});
                         modal.open();
                     });
+                }
+                
+                const waitEnd = performance.now();
+                const waitDuration = waitEnd - waitStart;
+
+                const timeout = interval - waitDuration;
+                if (timeout > 0) {
+                    await new Promise(resolve => setTimeout(resolve, timeout));
                 }
             }
 

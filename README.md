@@ -60,6 +60,9 @@ From this modal, type any of the following:
 
 If opted for, this per-iteration prompt offers an opportunity to assess any changes before continuing.
 
+Don't worry though, every milisecond waiting is already counting down the delay timer, so commands will
+wait times will always be the greater of: the delay timer OR how long you waited to continue. They will never combine.
+
 From this modal, continue by doing any of the following:
 
 - press \<Tab\> or \<Enter\>
