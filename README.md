@@ -3,7 +3,7 @@
 This plugin is designed to enrich the command use experience by enabling repeated command iterations.
 
 eg. When using 'Advanced Tables' community plguin and you need to move a row up 20 times, rather than click the button in the sidebar GUI or
-repeatedly call the command exhaustively, use commando to call the command once and have it repeat 20 times per your instruction!
+repeatedly call the command exhaustively, use Commando to call the command once and have it repeat 20 times per your instruction!
 
 Commando is so named to be reminiscent of the community plugin 'Commander' which enables creating command macros. (see also 'QuickAdd').
 Macros were originally also going to be enabled by Commando, but instead I've chosen to accept help and divide and conquer!
@@ -26,14 +26,16 @@ a production or day to day vault.
 
 ## Features
 
-- Dedicated 'Commando Palette'. One command to rule them all!
+- equip dedicated 'Commando Palette'. One command to rule them all!
+- use vim numeric prefix buffer as iteration count
+- set default iteration delay and optional perinvocation delay override
 - optional continue iteration prompts
 - instant breakout from iteration with \<Ctrl + c\>
-- SEE the vim keyBuffer (or optionally only numeric prefix buffer) in the status bar!
+- SEE the vim keyBuffer (and optionally limit numeric prefix buffer) in the status bar!
 
 # Commando Palette
 
-Nearly identical in operation to the normal command palette, with a secret:
+Nearly identical in operation to the normal command palette, with a secret weapon:
 
 When Obsidian is in Vim Mode, the Commando Palette can use the vim numeric prefix buffer as the command iteration count.
 
@@ -60,8 +62,8 @@ From this modal, type any of the following:
 
 If opted for, this per-iteration prompt offers an opportunity to assess any changes before continuing.
 
-Don't worry though, every milisecond waiting is already counting down the delay timer, so commands will
-wait times will always be the greater of: the delay timer OR how long you waited to continue. They will never combine.
+Don't worry though, every milisecond waiting is already counting down the delay timer, so wait times will
+always be the greater of: the delay timer OR how long you waited to continue. They will never combine.
 
 From this modal, continue by doing any of the following:
 

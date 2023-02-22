@@ -112,7 +112,7 @@ export default class CommandoPlugin extends Plugin {
     //  ADD COMMAND
         this.addCommand({
             id: "commando-repeat-command",
-            name: "Commando Command Palette",
+            name: "Equip Commando Palette",
             callback: () => {
                 if (this.running) return;
 
