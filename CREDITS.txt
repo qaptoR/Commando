@@ -36,6 +36,20 @@
                   ':,,--------------------------------,,:'                
                                                                           
                                                                           
-             "i bet you didn't think it'd get so bad so quick"          
+             "the place we inhabit in our mind is our true home"          
                                                                           
-                                                                          
+
+
+
+
+
+
+As always, this software is dedicated to 'the fire in my heart', the passion I feel towards writing software and building
+excellent games, tools, plguins, scripts, applications, etc.
+
+There is hardly anything more thrilling for me than turning an idea into a reality. While I think engineering or other
+physical construction fields are impressive for how they can reshape the phsyical world for our better, my satisfaction
+comes from developing the inifinte space of information into a navigable campus of structures that allow those who are brave
+to search deeper into the void for what is possible.
+
+    - qaptoR
