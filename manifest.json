@@ -1,0 +1,11 @@
+{
+	"id": "commando-command-repeater",
+	"name": "Commando",
+	"version": "1.0.0",
+	"minAppVersion": "1.1.9",
+	"description": "Enables the user to provide the number of times to repeat a command.",
+	"author": "qaptoR",
+	"authorUrl": "",
+	"fundingUrl": "",
+	"isDesktopOnly": false
+}
