@@ -158,9 +158,15 @@ export default class CommandoVimModal extends FuzzySuggestModal<Command> {
             let bufferVal :string = this.plugin.getKeyBufferValue();
 
             // @ts-ignore
-            this.app.workspace.activeEditor.editor.cm.cm.state.vim.inputState.keyBuffer = "";
-            const match_result = bufferVal?.match(/^\d+/);
-            const repeat_amount = match_result ? parseInt(match_result[0]) : 1;
+            this.app.workspace.activeEditor.editor.cm.cm.state.vim.inputState.keyBuffer = [];
+
+            let prefix :string = "";
+            for (let i= 0; i< bufferVal.length; ++i) {
+                if(!/\d/.test(bufferVal[i])) break;
+                prefix += bufferVal;
+            }
+            const parsed = parseInt(prefix);
+            const repeat_amount = Number.isNaN(parsed) ? 1 : parsed;
 
             new Notice(repeat_amount.toString());
 
