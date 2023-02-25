@@ -135,7 +135,6 @@ export default class CommandoPlugin extends Plugin {
             if ('isProxy' in target && prop == "status") {
 
 
-                console.log(value);
                 const maxBuffer :number = self.settings.maxVimBuffer;
                 
                 if (maxBuffer != 0) {
