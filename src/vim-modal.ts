@@ -2,7 +2,6 @@
 
 import CommandoPlugin from "main";
 import { Setting, FuzzySuggestModal, App, Command, Notice, Instruction, Modal } from "obsidian";
-import { buffer } from "stream/consumers";
 
 
 

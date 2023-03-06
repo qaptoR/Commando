@@ -26,7 +26,7 @@ export default class CommandSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
+		containerEl.createEl('h2', {text: 'Commando Setting'});
 
 		const maxVimBuffer = new Setting(containerEl);
         maxVimBuffer

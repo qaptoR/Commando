@@ -1,10 +1,9 @@
 
 
-import { Plugin, WorkspaceLeaf } from 'obsidian';
-import CommandoVimModal from 'vim-modal';
-import CommandSettingTab from 'settings';
-import { buffer } from 'stream/consumers';
-import { isProxy } from 'util/types';
+import { Plugin,  } from 'obsidian';
+import CommandoVimModal from 'src/vim-modal';
+import CommandSettingTab from 'src/settings';
+import { set_stable_proxy } from './proxy';
 
 
 interface CommandoSettings {
@@ -36,6 +35,7 @@ export default class CommandoPlugin extends Plugin {
     commandoStatus_div :HTMLElement;
     running :boolean = false;
     breakLoop :boolean = false;
+    bufferValue :number
 
 
 
@@ -46,7 +46,7 @@ export default class CommandoPlugin extends Plugin {
     
     checkVimMode () {
         // @ts-ignore
-        return this.app.vault.config.vimMode;
+        return this.app.vault.config.get('vimMode');
     }
     
         // --- --- --- --- --- ,,, --- ''' qFp ''' --- ,,, --- --- --- --- --- //
@@ -96,9 +96,6 @@ export default class CommandoPlugin extends Plugin {
 
         console.log("Loading Plugin Commando");
 
-        const self = this;
-        // required for proxy set() trap closure to reliably access 'commandoStatus_div'
-        
         
     //  SETTINGS TAB
 		await this.loadSettings();
@@ -113,7 +110,7 @@ export default class CommandoPlugin extends Plugin {
         
     //  ADD COMMAND
         this.addCommand({
-            id: "commando-repeat-command",
+            id: "equip-commando-paletter",
             name: "Equip Commando Palette",
             callback: () => {
                 if (this.running) return;
@@ -129,64 +126,11 @@ export default class CommandoPlugin extends Plugin {
         this.commandoStatus_div = keyBuffer_status.createEl('div', {text: ""});
 
 
-    //  BUFFER PROXY SETTER
-        const vim_proxy_setter = function (target :any, prop :string, value :any, receiver :any) {
-    
-            if ('isProxy' in target && prop == "status") {
-
-
-                const maxBuffer :number = self.settings.maxVimBuffer;
-                
-                if (maxBuffer != 0) {
-                const match = /^\d+/.exec(value);
-                if (match && match[0].length > maxBuffer) {
-                    const diff = match[0].length - maxBuffer;
-                    value = value.substring(diff);
-                    for (let i= 0; i< diff; ++i) target.inputState.keyBuffer.shift();
-                } }
-                
-                self.commandoStatus_div.setText(value);
-            }
-
-            target[prop] = value;
-            return true;
-        }
-
-
-    //  ROOT PROXY 
-        const set_stable_proxy = function (leaf :WorkspaceLeaf) {
-
-            // @ts-ignore
-            if (!self.app.vault.config.vimMode) return;
-
-            // @ts-ignore
-            if ( leaf.view.editor == null ) {
-                return;
-            }
-
-            // @ts-ignore
-            if ('isProxy' in leaf.view.editor.cm.cm.state.vim) return;
-            // if ('isProxy' in leaf.view.editor.cm.cm.state.vimPlugin) return;
-            
-            // @ts-ignore
-            const target = leaf.view.editor.cm.cm.state.vim;
-            // const target = leaf.view.editor.cm.cm.state.vimPlugin;
-            const proxy = new Proxy(
-                target, {
-                set: vim_proxy_setter
-            })
-
-            proxy.isProxy = true;
-
-            // @ts-ignore
-            leaf.view.editor.cm.cm.state.vim = proxy;
-            // leaf.view.editor.cm.cm.state.vimPlugin = proxy;
-        }
 
 
     //  REGISTER EVENT AND PROXIES
-        this.app.workspace.iterateAllLeaves(set_stable_proxy);
-        this.registerEvent(this.app.workspace.on('active-leaf-change', set_stable_proxy));
+        this.app.workspace.iterateAllLeaves(set_stable_proxy.bind(this));
+        this.registerEvent(this.app.workspace.on('active-leaf-change', set_stable_proxy.bind(this)));
 
 	}
 
