@@ -24,6 +24,12 @@ remove files. With great power comes great responsibility.
 As an added precaution, it is a good idea to pre-test running Commando with any command in a test vault before use in
 a production or day to day vault.
 
+### Special Note about Hotkeys
+
+In order to use the Vim Buffer feature you cannot use the plugin 'Sequence HotKeys' to open the Commando Palette.
+The way that plugin operates consumes the buffer before any command can be chosen from the palette.
+Instead, it's recommended to set the hoteky to something like \<alt + shift + p\> using the obsidian hotkey settings.
+
 ## Features
 
 - equip dedicated 'Commando Palette'. One command to rule them all!
