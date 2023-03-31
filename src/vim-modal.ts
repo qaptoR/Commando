@@ -79,14 +79,6 @@ export default class CommandoVimModal extends FuzzySuggestModal<Command> {
     
     getItems(): Command[] {
         
-        // const commands :Command[] = [];
-        // // @ts-ignore
-        // for (const command in this.app.commands.commands) {
-        //     // @ts-ignore
-        //     commands.push(this.app.commands.commands[command]);
-        // }
-        // return commands;
-
         // @ts-ignore
         return this.app.commands.listCommands();
     }
