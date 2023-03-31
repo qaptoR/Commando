@@ -1,6 +1,6 @@
 
 
-import CommandoPlugin from "main";
+import { CommandoPlugin } from "main";
 import { Setting, FuzzySuggestModal, App, Command, Notice, Instruction, Modal } from "obsidian";
 
 
@@ -79,13 +79,16 @@ export default class CommandoVimModal extends FuzzySuggestModal<Command> {
     
     getItems(): Command[] {
         
-        const commands :Command[] = [];
+        // const commands :Command[] = [];
+        // // @ts-ignore
+        // for (const command in this.app.commands.commands) {
+        //     // @ts-ignore
+        //     commands.push(this.app.commands.commands[command]);
+        // }
+        // return commands;
+
         // @ts-ignore
-        for (const command in this.app.commands.commands) {
-            // @ts-ignore
-            commands.push(this.app.commands.commands[command]);
-        }
-        return commands;
+        return this.app.commands.listCommands();
     }
 
 
